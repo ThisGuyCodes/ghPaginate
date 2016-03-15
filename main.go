@@ -24,7 +24,7 @@ func main() {
 	flag.BoolVar(&isOrg, "isOrg", false, "is this an org (opposed to a user)")
 	flag.StringVar(&apiPoint, "apiPoint", "api.github.com", "api endpoint to use")
 	flag.StringVar(&action, "action", "repos", "action to paginate on")
-	flag.StringVar(&prop, "prop", "name", "property to produce")
+	flag.StringVar(&prop, "prop", "", "property to produce")
 	flag.BoolVar(&stream, "stream", false, "output as a stream of values, instead of an array")
 
 	flag.Parse()
@@ -72,12 +72,20 @@ func main() {
 		resp.Body.Close()
 		for _, value := range values {
 			if stream {
-				err = enc.Encode(value[prop])
+				if prop == "" {
+					err = enc.Encode(value)
+				} else {
+					err = enc.Encode(value[prop])
+				}
 				if err != nil {
 					log.Fatalln("Could not encode value:", err)
 				}
 			} else {
-				output = append(output, value[prop])
+				if prop == "" {
+					output = append(output, value)
+				} else {
+					output = append(output, value[prop])
+				}
 			}
 		}
 		next, ok := linksMap["next"]
