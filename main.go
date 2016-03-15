@@ -19,7 +19,7 @@ func main() {
 	var action string
 	var prop string
 	var stream bool
-	flag.StringVar(&apiKey, "apiKey", "", "github api key to use")
+	flag.StringVar(&apiKey, "apiKey", "", "github api key to use, can also be GITHUB_API_KEY environment variable")
 	flag.StringVar(&name, "name", "", "name of the user/org to list")
 	flag.BoolVar(&isOrg, "isOrg", false, "is this an org (opposed to a user)")
 	flag.StringVar(&apiPoint, "apiPoint", "api.github.com", "api endpoint to use")
@@ -34,6 +34,10 @@ func main() {
 		orgVusr = "orgs"
 	} else {
 		orgVusr = "users"
+	}
+
+	if apiKey == "" {
+		apiKey = os.Getenv("GITHUB_API_KEY")
 	}
 
 	url := fmt.Sprintf("https://%s/%s/%s/%s", apiPoint, orgVusr, name, action)
