@@ -18,12 +18,14 @@ func main() {
 	var apiPoint string
 	var action string
 	var prop string
+	var stream bool
 	flag.StringVar(&apiKey, "apiKey", "", "github api key to use")
 	flag.StringVar(&name, "name", "", "name of the user/org to list")
 	flag.BoolVar(&isOrg, "isOrg", false, "is this an org (opposed to a user)")
 	flag.StringVar(&apiPoint, "apiPoint", "api.github.com", "api endpoint to use")
 	flag.StringVar(&action, "action", "repos", "action to paginate on")
 	flag.StringVar(&prop, "prop", "name", "property to produce")
+	flag.BoolVar(&stream, "stream", false, "output as a stream of values, instead of an array")
 
 	flag.Parse()
 
@@ -45,6 +47,7 @@ func main() {
 
 	var output []interface{}
 
+	enc := json.NewEncoder(os.Stdout)
 	for {
 		if apiKey != "" {
 			req.Header.Set("Authorization", fmt.Sprintf("token %s", apiKey))
@@ -53,7 +56,6 @@ func main() {
 		if err != nil {
 			log.Fatalln("Could not initiate request:", err)
 		}
-		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
 			log.Fatalln("Got bad status code:", resp.StatusCode)
 		}
@@ -63,8 +65,16 @@ func main() {
 		decoder := json.NewDecoder(resp.Body)
 		var values []map[string]interface{}
 		decoder.Decode(&values)
+		resp.Body.Close()
 		for _, value := range values {
-			output = append(output, value[prop])
+			if stream {
+				err = enc.Encode(value[prop])
+				if err != nil {
+					log.Fatalln("Could not encode value:", err)
+				}
+			} else {
+				output = append(output, value[prop])
+			}
 		}
 		next, ok := linksMap["next"]
 		if !ok {
@@ -76,7 +86,11 @@ func main() {
 		}
 	}
 
-	enc := json.NewEncoder(os.Stdout)
-	enc.Encode(output)
+	if !stream {
+		err = enc.Encode(output)
+		if err != nil {
+			log.Fatalln("Could not encode output:", err)
+		}
+	}
 
 }
